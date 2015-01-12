@@ -1,59 +1,23 @@
 #include <stdio.h>
+#include <stdbool.h>
 #include <sys/time.h>
+
+#include "sched.h"
 
 /* Here follows a "simple" scheduler (simple to implement, less-than-simple to
  * use) written for use on an Arduino to schedule a memory-limited number of
  * pseudo-asynchronous scheduled events (no premptive scheduling is implemented,
  * so blocking functions will block everything else -- BREAK DOWN YOUR FUNCTIONS. */
 
-/* feel free to change this, but it is proportional to time and space complexity for a bunch of operations */
-#define TASK_BUFFER_SIZE 100
-
-enum task_flag_t {
-	NOOP,      /* do not execute, it may be overwritten by the next register call */
-	IDLE,      /* run at the next idle tick (time related variables are ignored, but should be set to 0) */
-	ONCE,      /* run once at (the specified time + the time of registering the task) milliseconds */
-	PERIODIC,  /* run every (specified time) milliseconds (starting at the first tick after being registered). */
-};
+/* TODO: Use multiple stacks with task_delay() to allow for dynamic context
+ * switching between several running tasks that are blocking or scheduled to run. */
 
 /* NOTE: Here be dragons if you start modifying internal stuff.
  *       There is some magic here that we will try to document.
  *       If you didn't write it, don't touch it. */
 
-/* generic "task" structure */
-/* in order for two task structures to be considered equivalent, all attributes must be equal */
-/* any changes made to a _* attribute may (and probably will) be overwritten by the scheduler (or, if you're lucky, crash the scheduler) */
-struct task_t {
-	/* the task function pointer to be run with the given argument */
-	void (*task)(void *);
-	void *task_arg;
-
-	/* callbacks (passed a pointer to the task struct) */
-	void (*callback_add)(struct task_t *);    /* when registered */
-	void (*callback_before)(struct task_t *); /* before execution, when scheduled to run */
-	void (*callback_after)(struct task_t *);  /* after execution, when scheduled to run */
-	void (*callback_rm)(struct task_t *);     /* when deregistered (regardless of whether it ran or not) */
-
-	/* a time-related variable, which has a different meaning depending on the flag */
-	long mtime;
-
-	/* represents the "next" scheduled time it is meant to run (allows for period tasks) */
-	long _next_mtime;
-
-	/* flag for a task, used to provide context for the mtime element */
-	enum task_flag_t flag;
-};
-
-/* overall scheduler structure */
-struct sched_t {
-	struct task_t registered[TASK_BUFFER_SIZE];
-};
-
-/* global scheduler instance */
-struct sched_t scheduler;
-
 /* helper function to properly clear a task */
-void __task_clear(struct task_t *task) {
+void task_clear(struct task_t *task) {
 	task->task = NULL;
 	task->task_arg = NULL;
 	task->callback_add = NULL;
@@ -69,7 +33,7 @@ void __task_clear(struct task_t *task) {
 void tasks_init(struct sched_t *sched) {
 	int i;
 	for(i = 0; i < TASK_BUFFER_SIZE; i++) {
-		__task_clear(&sched->registered[i]);
+		task_clear(&sched->registered[i]);
 	}
 }
 
@@ -103,12 +67,6 @@ int __tasks_next_slot(struct sched_t *sched) {
 	return -1;
 }
 
-#if !defined(bool)
-#	define bool short
-#	define true 1
-#	define false 0
-#endif
-
 /* (internal) returns whether the two task structures are equivalent */
 bool __tasks_equivalent(struct task_t left, struct task_t right) {
 	return left.task == right.task &&
@@ -119,7 +77,7 @@ bool __tasks_equivalent(struct task_t left, struct task_t right) {
 		   left.callback_rm == right.callback_rm &&
 		   left.mtime == right.mtime &&
 		   /* XXX: this makes deregistering periodic functions impossible */
-		   left._next_mtime == right._next_mtime &&
+		   /*left._next_mtime == right._next_mtime &&*/
 		   left.flag == right.flag;
 }
 
@@ -130,7 +88,7 @@ void _tasks_deregister(struct task_t *task) {
 		task->callback_rm(task);
 
 	/* clear task */
-	__task_clear(task);
+	task_clear(task);
 }
 
 /* (~internal) finds first match of the task and returns its pointer */
