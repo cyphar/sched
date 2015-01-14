@@ -68,9 +68,8 @@ static void __async_tone_on(struct tone_t *tone) {
 	}
 
 	/* do not run the on if the tone has ended or register the next task */
-	if(now >= tone->end) {
+	if(now >= tone->end)
 		return;
-	}
 
 	/* calculate the period and duty cycle time for the tone */
 	int mperiod = __to_mperiod(tone->frequency);
@@ -108,7 +107,7 @@ static void __async_tone_off(struct tone_t *tone) {
 	__tone_off(tone);
 
 	/* only schedule the next tone oscillation if the tone hasn't ended yet */
-	if(now < tone->end) {
+	if(now <= tone->end) {
 		struct task_t task;
 		task_clear(&task);
 		task.task = (task_fp) __async_tone_on;

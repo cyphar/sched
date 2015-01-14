@@ -1,3 +1,6 @@
+#if !defined(__TONE_H__)
+#define __TONE_H__
+
 struct tone_t {
 	/* do not touch this, it is automatically set by the async_tone call */
 	struct sched_t *_sched;
@@ -14,3 +17,4 @@ struct tone_t {
 
 void tone_clear(struct tone_t *);
 void async_tone(struct sched_t *, struct tone_t *);
+#endif
