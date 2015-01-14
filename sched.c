@@ -24,6 +24,10 @@
 #include <stdbool.h>
 #include <sys/time.h>
 
+#if defined(__ARDUINO__)
+#	include <Arduino.h>
+#endif
+
 #include "sched.h"
 
 /* Here follows a "simple" scheduler (simple to implement, less-than-simple to
@@ -57,16 +61,17 @@ void sched_init(struct sched_t *sched) {
 
 /* returns the current time in microseconds with some arbitrary start point */
 static long __sched_get_mtime(void) {
-#if 0
+#if defined(__ARDUINO__)
 	/* just use the arduino epoch */
 	return millis();
-#endif
+#else
 	/* for use on POSIX machines */
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 
 	/* convert to milliseconds */
 	return (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
+#endif
 }
 
 /* (internal) get the next available slot in the set of _tasks tasks */
@@ -90,8 +95,6 @@ static bool __tasks_equivalent(struct task_t left, struct task_t right) {
 	return left.task == right.task &&
 		   left.task_arg == right.task_arg &&
 		   left.mtime == right.mtime &&
-		   /* XXX: this makes deregistering periodic functions impossible */
-		   /*left._next_mtime == right._next_mtime &&*/
 		   left.flag == right.flag;
 }
 

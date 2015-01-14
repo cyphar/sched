@@ -24,6 +24,10 @@
 #include <stdio.h>
 #include <sys/time.h>
 
+#if defined(__ARDUINO__)
+#	include <Arduino.h>
+#endif
+
 #include "sched.h"
 
 struct tone_t {
@@ -47,16 +51,17 @@ void tone_clear(struct tone_t *tone) {
 }
 
 static long __async_time(void) {
-#if 0
+#if defined(__ARDUINO__)
 	/* just use the arduino epoch */
 	return millis();
-#endif
+#else
 	/* for use on POSIX machines */
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 
 	/* convert to milliseconds */
 	return (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
+#endif
 }
 
 static int __to_mperiod(long freq) {
@@ -68,11 +73,10 @@ static void __async_tone_on(struct tone_t *);
 static void __async_tone_off(struct tone_t *);
 
 static void __tone_on(struct tone_t *tone) {
-#if 0
+#if defined(__ARDUINO__)
 	/* Arduino magic. */
 	digitalWrite(tone->pin, HIGH);
 #endif
-	fprintf(stderr, "turned pin %d to HIGH.\n", tone->pin);
 }
 
 static void __async_tone_on(struct tone_t *tone) {
@@ -112,11 +116,10 @@ static void __async_tone_on(struct tone_t *tone) {
 }
 
 static void __tone_off(struct tone_t *tone) {
-#if 0
+#if defined(__ARDUINO__)
 	/* Arduino magic. */
 	digitalWrite(tone->pin, LOW);
 #endif
-	fprintf(stderr, "turned pin %d to LOW.\n", tone->pin);
 }
 
 static void __async_tone_off(struct tone_t *tone) {
