@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <sys/time.h>
 
 #include "sched.h"
@@ -11,17 +10,17 @@ struct tone_t {
 	float frequency;
 	float amplitude; /* must be <= 0.9 */
 
-	long _start;
-	long _end;
+	long start;
+	long end;
 };
 
-static void __tone_clear(struct tone_t *tone) {
+void tone_clear(struct tone_t *tone) {
 	tone->_sched = NULL;
 	tone->pin = 0;
 	tone->frequency = 0.0;
 	tone->amplitude = 0.0;
-	tone->_start = 0;
-	tone->_end = 0;
+	tone->start = 0;
+	tone->end = 0;
 }
 
 static long __async_time(void) {
@@ -57,19 +56,19 @@ static void __async_tone_on(struct tone_t *tone) {
 	long now = __async_time();
 
 	/* re-schedule a tone at the correct offset when it starts prematurely */
-	if(now < tone->_start) {
+	if(now < tone->start) {
 		struct task_t task;
 		task_clear(&task);
 		task.task = (void (*)(void *)) __async_tone_on;
 		task.task_arg = tone;
-		task.mtime = tone->_start - now;
+		task.mtime = tone->start - now;
 		task.flag = ONCE;
 		sched_register(tone->_sched, task);
 		return;
 	}
 
 	/* do not run the on if the tone has ended or register the next task */
-	if(now >= tone->_end) {
+	if(now >= tone->end) {
 		return;
 	}
 
@@ -109,7 +108,7 @@ static void __async_tone_off(struct tone_t *tone) {
 	__tone_off(tone);
 
 	/* only schedule the next tone oscillation if the tone hasn't ended yet */
-	if(now < tone->_end) {
+	if(now < tone->end) {
 		struct task_t task;
 		task_clear(&task);
 		task.task = (void (*)(void *)) __async_tone_on;
@@ -121,28 +120,16 @@ static void __async_tone_off(struct tone_t *tone) {
 	}
 }
 
-/* XXX(cyphar): decide to use global or malloc'd. */
-
-void async_tone_offset(struct sched_t *sched, int pin, float frequency, float amplitude, long length, long offset) {
-	/* set up tone struct */
-	struct tone_t *tone = malloc(sizeof(struct tone_t));
+void async_tone(struct sched_t *sched, struct tone_t *tone) {
+	/* set scheduler */
 	tone->_sched = sched;
-	tone->pin = pin;
-	tone->frequency = frequency;
-	tone->amplitude = amplitude;
-	tone->_start = __async_time() + offset;
-	tone->_end = tone->_start + length;
 
 	/* set up task struct */
 	struct task_t task;
 	task_clear(&task);
-	task.task = (void (*)(void *)) __async_tone_on;
+	task.task = (task_fp) __async_tone_on;
 	task.task_arg = tone;
-	task.mtime = offset;
+	task.mtime = tone->start;
 	task.flag = ONCE;
 	sched_register(sched, task);
-}
-
-void async_tone(struct sched_t *sched, int pin, float frequency, float amplitude, long length) {
-	async_tone_offset(sched, pin, frequency, amplitude, length, 0);
 }
