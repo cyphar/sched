@@ -9,12 +9,14 @@ enum {
 	PERIODIC,  /* run every (specified time) milliseconds (starting at the first tick after being registered). */
 };
 
+typedef void (*task_fp)(void *);
+
 /* generic "task" structure */
 /* in order for two task structures to be considered equivalent, all attributes must be equal */
 /* any changes made to a _* attribute may (and probably will) be overwritten by the scheduler (or, if you're lucky, crash the scheduler) */
 struct task_t {
 	/* the task function pointer to be run with the given argument */
-	void (*task)(void *);
+	task_fp task;
 	void *task_arg;
 
 	/* a time-related variable, which has a different meaning depending on the flag */

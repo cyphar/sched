@@ -153,7 +153,7 @@ int tasks_register(struct sched_t *sched, struct task_t task) {
 /* (internal) executes a task as well as re-registering PERIODIC tasks */
 static void __task_execute(struct sched_t *sched, struct task_t *task, long unow) {
 	if(task->task)
-		task->task(task->task_arg);
+		(*task->task)(task->task_arg);
 
 	/* make a copy of the task data */
 	struct task_t new_task = *task;
