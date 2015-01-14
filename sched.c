@@ -20,10 +20,6 @@
 void task_clear(struct task_t *task) {
 	task->task = NULL;
 	task->task_arg = NULL;
-	task->callback_add = NULL;
-	task->callback_before = NULL;
-	task->callback_after = NULL;
-	task->callback_rm = NULL;
 	task->mtime = 0;
 	task->_next_mtime = 0;
 	task->flag = NOOP;
@@ -38,7 +34,7 @@ void tasks_init(struct sched_t *sched) {
 }
 
 /* returns the current time in microseconds with some arbitrary start point */
-long __tasks_get_mtime(void) {
+static long __tasks_get_mtime(void) {
 #if 0
 	/* just use the arduino epoch */
 	return millis();
@@ -54,7 +50,7 @@ long __tasks_get_mtime(void) {
 /* (internal) get the next available slot in the set of registered tasks */
 /* returns 0 if no errors,
  * else -1 if ENOMEM */
-int __tasks_next_slot(struct sched_t *sched) {
+static int __tasks_next_slot(struct sched_t *sched) {
 	int i;
 
 	for(i = 0; i < TASK_BUFFER_SIZE; i++) {
@@ -68,13 +64,9 @@ int __tasks_next_slot(struct sched_t *sched) {
 }
 
 /* (internal) returns whether the two task structures are equivalent */
-bool __tasks_equivalent(struct task_t left, struct task_t right) {
+static bool __tasks_equivalent(struct task_t left, struct task_t right) {
 	return left.task == right.task &&
 		   left.task_arg == right.task_arg &&
-		   left.callback_add == right.callback_add &&
-		   left.callback_before == right.callback_before &&
-		   left.callback_after == right.callback_after &&
-		   left.callback_rm == right.callback_rm &&
 		   left.mtime == right.mtime &&
 		   /* XXX: this makes deregistering periodic functions impossible */
 		   /*left._next_mtime == right._next_mtime &&*/
@@ -83,10 +75,6 @@ bool __tasks_equivalent(struct task_t left, struct task_t right) {
 
 /* (~internal) deregisters the given task pointer */
 void _tasks_deregister(struct task_t *task) {
-	/* run callback */
-	if(task->callback_rm)
-		task->callback_rm(task);
-
 	/* clear task */
 	task_clear(task);
 }
@@ -127,10 +115,6 @@ int _tasks_register(struct sched_t *sched, struct task_t task) {
 		return -1;
 	}
 
-	/* run the add callback */
-	if(task.callback_add)
-		task.callback_add(&task);
-
 	/* register the task */
 	sched->registered[i] = task;
 	return 0;
@@ -166,17 +150,10 @@ int tasks_register(struct sched_t *sched, struct task_t task) {
 	return _tasks_register(sched, task);
 }
 
-/* (internal) executes a task (and it's callbacks) as well as re-registering PERIODIC tasks */
-void __task_execute(struct sched_t *sched, struct task_t *task, long unow) {
-	/* execute the callbacks and main task */
-	if(task->callback_before)
-		task->callback_before(task);
-
+/* (internal) executes a task as well as re-registering PERIODIC tasks */
+static void __task_execute(struct sched_t *sched, struct task_t *task, long unow) {
 	if(task->task)
 		task->task(task->task_arg);
-
-	if(task->callback_after)
-		task->callback_after(task);
 
 	/* make a copy of the task data */
 	struct task_t new_task = *task;
@@ -224,6 +201,7 @@ void tasks_tick(struct sched_t *sched) {
 	}
 
 	/* this is an idle tick -- run through idle tasks */
+	/* XXX: do some form of check to see if the scheduler is *actually* idle for a good period of time */
 	if(idle) {
 		for(i = 0; i < TASK_BUFFER_SIZE; i++) {
 			struct task_t *task = &sched->registered[i];

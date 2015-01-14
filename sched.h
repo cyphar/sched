@@ -17,12 +17,6 @@ struct task_t {
 	void (*task)(void *);
 	void *task_arg;
 
-	/* callbacks (passed a pointer to the task struct) */
-	void (*callback_add)(struct task_t *);    /* when registered */
-	void (*callback_before)(struct task_t *); /* before execution, when scheduled to run */
-	void (*callback_after)(struct task_t *);  /* after execution, when scheduled to run */
-	void (*callback_rm)(struct task_t *);     /* when deregistered (regardless of whether it ran or not) */
-
 	/* a time-related variable, which has a different meaning depending on the flag */
 	long mtime;
 
