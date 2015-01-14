@@ -7,7 +7,7 @@ struct tone_t {
 	float frequency;
 	float amplitude; /* must be <= 0.9 */
 
-	/* interval data */
+	/* interval data -- relative to time of async_tone */
 	long start;
 	long end;
 };

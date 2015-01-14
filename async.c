@@ -111,7 +111,7 @@ static void __async_tone_off(struct tone_t *tone) {
 	if(now < tone->end) {
 		struct task_t task;
 		task_clear(&task);
-		task.task = (void (*)(void *)) __async_tone_on;
+		task.task = (task_fp) __async_tone_on;
 		task.task_arg = tone;
 		task.mtime = mduty;
 		task.flag = ONCE;
@@ -121,6 +121,11 @@ static void __async_tone_off(struct tone_t *tone) {
 }
 
 void async_tone(struct sched_t *sched, struct tone_t *tone) {
+	/* adjust start and end by time */
+	long now = __async_time();
+	tone->start += now;
+	tone->end += now;
+
 	/* set scheduler */
 	tone->_sched = sched;
 
