@@ -64,7 +64,7 @@ static void __async_tone_on(struct tone_t *tone) {
 		task.task_arg = tone;
 		task.mtime = tone->_start - now;
 		task.flag = ONCE;
-		tasks_register(tone->_sched, task);
+		sched_register(tone->_sched, task);
 		return;
 	}
 
@@ -87,7 +87,7 @@ static void __async_tone_on(struct tone_t *tone) {
 	task.task_arg = tone;
 	task.mtime = mduty;
 	task.flag = ONCE;
-	tasks_register(tone->_sched, task);
+	sched_register(tone->_sched, task);
 }
 
 static void __tone_off(struct tone_t *tone) {
@@ -116,7 +116,7 @@ static void __async_tone_off(struct tone_t *tone) {
 		task.task_arg = tone;
 		task.mtime = mduty;
 		task.flag = ONCE;
-		tasks_register(tone->_sched, task);
+		sched_register(tone->_sched, task);
 		return;
 	}
 }
@@ -140,7 +140,7 @@ void async_tone_offset(struct sched_t *sched, int pin, float frequency, float am
 	task.task_arg = tone;
 	task.mtime = offset;
 	task.flag = ONCE;
-	tasks_register(sched, task);
+	sched_register(sched, task);
 }
 
 void async_tone(struct sched_t *sched, int pin, float frequency, float amplitude, long length) {

@@ -32,7 +32,7 @@ void led(bool *state) {
 	task.task_arg = next,
 	task.mtime = 500,
 	task.flag = ONCE,
-	tasks_register(&scheduler, task);
+	sched_register(&scheduler, task);
 }
 
 void toggle_led(void *_) {
@@ -55,44 +55,44 @@ void idle(void *_) {
 	task.task = (task_fp) idle,
 	task.mtime = 5,
 	task.flag = IDLE,
-	tasks_register(&scheduler, task);
+	sched_register(&scheduler, task);
 }
 
 void setup(void) {
 	struct task_t task;
-	tasks_init(&scheduler);
+	sched_init(&scheduler);
 
 	task_clear(&task);
 	task.task = (task_fp) led,
 	task.task_arg = &on,
 	task.mtime = 500,
 	task.flag = ONCE,
-	tasks_register(&scheduler, task);
+	sched_register(&scheduler, task);
 
 	task_clear(&task);
 	task.task = toggle_led,
 	task.task_arg = NULL,
 	task.mtime = 300,
 	task.flag = PERIODIC,
-	tasks_register(&scheduler, task);
+	sched_register(&scheduler, task);
 
 	task_clear(&task);
 	task.task = toggle_led,
 	task.task_arg = NULL,
 	task.mtime = 350,
 	task.flag = PERIODIC,
-	tasks_register(&scheduler, task);
+	sched_register(&scheduler, task);
 
 	task_clear(&task);
 	task.task = idle,
 	task.task_arg = NULL,
 	task.mtime = 0,
 	task.flag = IDLE,
-	tasks_register(&scheduler, task);
+	sched_register(&scheduler, task);
 }
 
 void loop(void) {
-	tasks_tick(&scheduler);
+	sched_tick(&scheduler);
 }
 
 int main(void) {

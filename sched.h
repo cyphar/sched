@@ -35,7 +35,7 @@ struct sched_t {
 };
 
 void task_clear(struct task_t *);
-void tasks_init(struct sched_t *);
-int tasks_deregister(struct sched_t *, struct task_t);
-int tasks_register(struct sched_t *, struct task_t);
-void tasks_tick(struct sched_t *);
+void sched_init(struct sched_t *);
+int sched_deregister(struct sched_t *, struct task_t);
+int sched_register(struct sched_t *, struct task_t);
+void sched_tick(struct sched_t *);

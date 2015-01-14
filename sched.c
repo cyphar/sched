@@ -25,8 +25,8 @@ void task_clear(struct task_t *task) {
 	task->flag = NOOP;
 }
 
-/* initialises the task register buffer */
-void tasks_init(struct sched_t *sched) {
+/* initialises the scheduler */
+void sched_init(struct sched_t *sched) {
 	int i;
 	for(i = 0; i < TASK_BUFFER_SIZE; i++) {
 		task_clear(&sched->registered[i]);
@@ -34,7 +34,7 @@ void tasks_init(struct sched_t *sched) {
 }
 
 /* returns the current time in microseconds with some arbitrary start point */
-static long __tasks_get_mtime(void) {
+static long __sched_get_mtime(void) {
 #if 0
 	/* just use the arduino epoch */
 	return millis();
@@ -50,7 +50,7 @@ static long __tasks_get_mtime(void) {
 /* (internal) get the next available slot in the set of registered tasks */
 /* returns 0 if no errors,
  * else -1 if ENOMEM */
-static int __tasks_next_slot(struct sched_t *sched) {
+static int __sched_next_slot(struct sched_t *sched) {
 	int i;
 
 	for(i = 0; i < TASK_BUFFER_SIZE; i++) {
@@ -74,14 +74,14 @@ static bool __tasks_equivalent(struct task_t left, struct task_t right) {
 }
 
 /* (~internal) deregisters the given task pointer */
-void _tasks_deregister(struct task_t *task) {
+void _sched_deregister(struct task_t *task) {
 	/* clear task */
 	task_clear(task);
 }
 
 /* (~internal) finds first match of the task and returns its pointer */
 /* returns NULL if the task could not be found */
-struct task_t *_tasks_find(struct sched_t *sched, struct task_t task) {
+struct task_t *_sched_find(struct sched_t *sched, struct task_t task) {
 	int i;
 
 	for(i = 0; i < TASK_BUFFER_SIZE; i++) {
@@ -95,13 +95,13 @@ struct task_t *_tasks_find(struct sched_t *sched, struct task_t task) {
 }
 
 /* deregister a task from the scheduled tasks (only the first one found is deregistered */
-int tasks_deregister(struct sched_t *sched, struct task_t task) {
-	struct task_t *taskp = _tasks_find(sched, task);
+int sched_deregister(struct sched_t *sched, struct task_t task) {
+	struct task_t *taskp = _sched_find(sched, task);
 
 	if(!taskp)
 		return -1;
 
-	_tasks_deregister(taskp);
+	_sched_deregister(taskp);
 	return 0;
 }
 
@@ -109,8 +109,8 @@ int tasks_deregister(struct sched_t *sched, struct task_t task) {
 /* NOTE: no treatment of _* attributes is done by this function */
 /* returns 0 if no errors,
  * else -1 if ENOMEM */
-int _tasks_register(struct sched_t *sched, struct task_t task) {
-	int i = __tasks_next_slot(sched);
+int _sched_register(struct sched_t *sched, struct task_t task) {
+	int i = __sched_next_slot(sched);
 	if(i < 0) {
 		return -1;
 	}
@@ -124,8 +124,8 @@ int _tasks_register(struct sched_t *sched, struct task_t task) {
 /* returns 0 if no errors,
  * else -1 if ENOMEM,
  *      -2 if invalid task */
-int tasks_register(struct sched_t *sched, struct task_t task) {
-	long unow = __tasks_get_mtime();
+int sched_register(struct sched_t *sched, struct task_t task) {
+	long unow = __sched_get_mtime();
 
 	switch(task.flag) {
 		case IDLE:
@@ -147,11 +147,15 @@ int tasks_register(struct sched_t *sched, struct task_t task) {
 	}
 
 	/* pass to internal register */
-	return _tasks_register(sched, task);
+	return _sched_register(sched, task);
 }
 
 /* (internal) executes a task as well as re-registering PERIODIC tasks */
-static void __task_execute(struct sched_t *sched, struct task_t *task, long unow) {
+static void __sched_execute(struct sched_t *sched, struct task_t *task) {
+	/* get current time */
+	long unow = __sched_get_mtime();
+
+	/* execute task */
 	if(task->task)
 		(*task->task)(task->task_arg);
 
@@ -159,7 +163,7 @@ static void __task_execute(struct sched_t *sched, struct task_t *task, long unow
 	struct task_t new_task = *task;
 
 	/* deregister task */
-	_tasks_deregister(task);
+	_sched_deregister(task);
 
 	/* deal with registering tasks */
 	switch(new_task.flag) {
@@ -167,7 +171,7 @@ static void __task_execute(struct sched_t *sched, struct task_t *task, long unow
 			/* register next task to run */
 			/* XXX: what happens if we ENOMEM? */
 			new_task._next_mtime = unow + new_task.mtime;
-			_tasks_register(sched, new_task);
+			_sched_register(sched, new_task);
 			break;
 		case NOOP:
 		case IDLE:
@@ -184,8 +188,8 @@ static void __task_execute(struct sched_t *sched, struct task_t *task, long unow
 #define __TASK_IS_REGULAR(task) (!(__TASK_IS_NOOP(task) || __TASK_IS_IDLE(task)))
 
 /* executes one "tick" of the task scheduler */
-void tasks_tick(struct sched_t *sched) {
-	long unow = __tasks_get_mtime();
+void sched_tick(struct sched_t *sched) {
+	long unow = __sched_get_mtime();
 	bool idle = true;
 
 	/* run through regular tasks */
@@ -195,7 +199,7 @@ void tasks_tick(struct sched_t *sched) {
 		/* check if the task has been scheduled to run now or in the past */
 		if(__TASK_IS_REGULAR(*task) && task->_next_mtime <= unow) {
 			/* execute and set the idle tick flag to false */
-			__task_execute(sched, task, unow);
+			__sched_execute(sched, task);
 			idle = false;
 		}
 	}
@@ -206,7 +210,7 @@ void tasks_tick(struct sched_t *sched) {
 		for(i = 0; i < TASK_BUFFER_SIZE; i++) {
 			struct task_t *task = &sched->registered[i];
 			if(__TASK_IS_IDLE(*task))
-				__task_execute(sched, task, unow);
+				__sched_execute(sched, task);
 		}
 	}
 }
