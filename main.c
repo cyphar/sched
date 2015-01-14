@@ -9,33 +9,29 @@ struct sched_t scheduler;
 /* NOTE: ARDUINO EMULATOR */
 /* ====================== */
 
-const bool on = true;
-const bool off = false;
+bool on = true;
+bool off = false;
 
-void led(void *st) {
-	bool state = *(bool *) st;
-	void *next = NULL;
+void led(bool *state) {
+	bool *next = NULL;
 
-	switch(state) {
+	switch(*state) {
 		case true:
-			next = (void *) &off;
+			next = &off;
 			printf("explicit: on\n");
 			break;
 		case false:
-			next = (void *) &on;
+			next = &on;
 			printf("explicit: off\n");
 			break;
 	}
 
-	struct task_t task = {
-		.task = led,
-		.task_arg = next,
-		.callback_before = NULL,
-		.callback_after = NULL,
-		.callback_rm = NULL,
-		.mtime = 500,
-		.flag = ONCE,
-	};
+	struct task_t task;
+	task_clear(&task);
+	task.task = (task_fp) led,
+	task.task_arg = next,
+	task.mtime = 500,
+	task.flag = ONCE,
 	tasks_register(&scheduler, task);
 }
 
@@ -54,66 +50,44 @@ void idle(void *_) {
 		;
 	*/
 
-	struct task_t task = {
-		.task = idle,
-		.task_arg = NULL,
-		.callback_before = NULL,
-		.callback_after = NULL,
-		.callback_rm = NULL,
-		.mtime = 0,
-		.flag = IDLE,
-	};
+	struct task_t task;
+	task_clear(&task);
+	task.task = (task_fp) idle,
+	task.mtime = 5,
+	task.flag = IDLE,
 	tasks_register(&scheduler, task);
 }
 
 void setup(void) {
+	struct task_t task;
 	tasks_init(&scheduler);
 
-	struct task_t task;
-
-	task = (struct task_t){
-		.task = led,
-		.task_arg = (void *)&on,
-		.callback_before = NULL,
-		.callback_after = NULL,
-		.callback_rm = NULL,
-		.mtime = 500,
-		.flag = ONCE,
-	};
+	task_clear(&task);
+	task.task = (task_fp) led,
+	task.task_arg = &on,
+	task.mtime = 500,
+	task.flag = ONCE,
 	tasks_register(&scheduler, task);
 
-	task = (struct task_t){
-		.task = toggle_led,
-		.task_arg = NULL,
-		.callback_before = NULL,
-		.callback_after = NULL,
-		.callback_rm = NULL,
-		.mtime = 300,
-		.flag = PERIODIC,
-	};
+	task_clear(&task);
+	task.task = toggle_led,
+	task.task_arg = NULL,
+	task.mtime = 300,
+	task.flag = PERIODIC,
 	tasks_register(&scheduler, task);
 
-	task = (struct task_t){
-		.task = toggle_led,
-		.task_arg = NULL,
-		.callback_before = NULL,
-		.callback_after = NULL,
-		.callback_rm = NULL,
-		.mtime = 350,
-		.flag = PERIODIC,
-	};
+	task_clear(&task);
+	task.task = toggle_led,
+	task.task_arg = NULL,
+	task.mtime = 350,
+	task.flag = PERIODIC,
 	tasks_register(&scheduler, task);
 
-	task = (struct task_t){
-		.task = idle,
-		.task_arg = NULL,
-		.callback_before = NULL,
-		.callback_after = NULL,
-		.callback_rm = NULL,
-		.mtime = 0,
-		.flag = IDLE,
-	};
-
+	task_clear(&task);
+	task.task = idle,
+	task.task_arg = NULL,
+	task.mtime = 0,
+	task.flag = IDLE,
 	tasks_register(&scheduler, task);
 }
 
