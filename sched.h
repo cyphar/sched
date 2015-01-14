@@ -1,8 +1,15 @@
+#if !defined(__SCHED_H__)
+#define __SCHED_H__
+
 /* feel free to change this, but it is proportional to time and space complexity for a bunch of operations */
-#define SCHED_BUFFER_SIZE 100
+#if !defined(SCHED_BUFFER_SIZE)
+#	define SCHED_BUFFER_SIZE 100
+#endif
 
 /* the amount of time in milliseconds that the scheduler must be idle in order for idle tasks to be run */
-#define SCHED_IDLE_WINDOW 200
+#if !defined(SCHED_IDLE_WINDOW)
+#	define SCHED_IDLE_WINDOW 200
+#endif
 
 /* task type enum */
 enum {
@@ -42,3 +49,5 @@ void sched_init(struct sched_t *);
 int sched_deregister(struct sched_t *, struct task_t);
 int sched_register(struct sched_t *, struct task_t);
 void sched_tick(struct sched_t *);
+
+#endif
