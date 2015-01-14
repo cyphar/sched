@@ -28,8 +28,8 @@ void task_clear(struct task_t *task) {
 /* initialises the scheduler */
 void sched_init(struct sched_t *sched) {
 	int i;
-	for(i = 0; i < TASK_BUFFER_SIZE; i++) {
-		task_clear(&sched->registered[i]);
+	for(i = 0; i < SCHED_BUFFER_SIZE; i++) {
+		task_clear(&sched->_tasks[i]);
 	}
 }
 
@@ -47,15 +47,15 @@ static long __sched_get_mtime(void) {
 	return (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
 }
 
-/* (internal) get the next available slot in the set of registered tasks */
+/* (internal) get the next available slot in the set of _tasks tasks */
 /* returns 0 if no errors,
  * else -1 if ENOMEM */
 static int __sched_next_slot(struct sched_t *sched) {
 	int i;
 
-	for(i = 0; i < TASK_BUFFER_SIZE; i++) {
+	for(i = 0; i < SCHED_BUFFER_SIZE; i++) {
 		/* NOOPs and NULL task function pointers are treated as blanks */
-		if(sched->registered[i].task == NULL || sched->registered[i].flag == NOOP) {
+		if(sched->_tasks[i].task == NULL || sched->_tasks[i].flag == NOOP) {
 			return i;
 		}
 	}
@@ -84,8 +84,8 @@ void _sched_deregister(struct task_t *task) {
 struct task_t *_sched_find(struct sched_t *sched, struct task_t task) {
 	int i;
 
-	for(i = 0; i < TASK_BUFFER_SIZE; i++) {
-		struct task_t *taskp = &sched->registered[i];
+	for(i = 0; i < SCHED_BUFFER_SIZE; i++) {
+		struct task_t *taskp = &sched->_tasks[i];
 		if(__tasks_equivalent(*taskp, task)) {
 			return taskp;
 		}
@@ -94,7 +94,7 @@ struct task_t *_sched_find(struct sched_t *sched, struct task_t task) {
 	return NULL;
 }
 
-/* deregister a task from the scheduled tasks (only the first one found is deregistered */
+/* deregister a task from the scheduled tasks (only the first one found is de_tasks */
 int sched_deregister(struct sched_t *sched, struct task_t task) {
 	struct task_t *taskp = _sched_find(sched, task);
 
@@ -105,7 +105,7 @@ int sched_deregister(struct sched_t *sched, struct task_t task) {
 	return 0;
 }
 
-/* (~internal) registers the given task (a single task /can/ be registered more than once) */
+/* (~internal) registers the given task (a single task /can/ be _tasks more than once) */
 /* NOTE: no treatment of _* attributes is done by this function */
 /* returns 0 if no errors,
  * else -1 if ENOMEM */
@@ -116,11 +116,11 @@ int _sched_register(struct sched_t *sched, struct task_t task) {
 	}
 
 	/* register the task */
-	sched->registered[i] = task;
+	sched->_tasks[i] = task;
 	return 0;
 }
 
-/* registers the given task (a single task /can/ be registered more than once) */
+/* registers the given task (a single task /can/ be _tasks more than once) */
 /* returns 0 if no errors,
  * else -1 if ENOMEM,
  *      -2 if invalid task */
@@ -194,21 +194,28 @@ void sched_tick(struct sched_t *sched) {
 
 	/* run through regular tasks */
 	int i;
-	for(i = 0; i < TASK_BUFFER_SIZE; i++) {
-		struct task_t *task = &sched->registered[i];
+	for(i = 0; i < SCHED_BUFFER_SIZE; i++) {
+		struct task_t *task = &sched->_tasks[i];
+
 		/* check if the task has been scheduled to run now or in the past */
-		if(__TASK_IS_REGULAR(*task) && task->_next_mtime <= unow) {
-			/* execute and set the idle tick flag to false */
-			__sched_execute(sched, task);
-			idle = false;
+		if(__TASK_IS_REGULAR(*task)) {
+			/* check if the task has been scheduled to execute in the idle window */
+			if(task->_next_mtime <= unow + SCHED_IDLE_WINDOW) {
+				idle = false;
+			}
+
+			/* task has been scheduled to execute */
+			if(task->_next_mtime <= unow)
+				__sched_execute(sched, task);
 		}
 	}
 
 	/* this is an idle tick -- run through idle tasks */
-	/* XXX: do some form of check to see if the scheduler is *actually* idle for a good period of time */
 	if(idle) {
-		for(i = 0; i < TASK_BUFFER_SIZE; i++) {
-			struct task_t *task = &sched->registered[i];
+		for(i = 0; i < SCHED_BUFFER_SIZE; i++) {
+			struct task_t *task = &sched->_tasks[i];
+
+			/* execute idle tasks */
 			if(__TASK_IS_IDLE(*task))
 				__sched_execute(sched, task);
 		}

@@ -1,5 +1,8 @@
 /* feel free to change this, but it is proportional to time and space complexity for a bunch of operations */
-#define TASK_BUFFER_SIZE 100
+#define SCHED_BUFFER_SIZE 100
+
+/* the amount of time in milliseconds that the scheduler must be idle in order for idle tasks to be run */
+#define SCHED_IDLE_WINDOW 200
 
 /* task type enum */
 enum {
@@ -31,7 +34,7 @@ struct task_t {
 
 /* overall scheduler structure */
 struct sched_t {
-	struct task_t registered[TASK_BUFFER_SIZE];
+	struct task_t _tasks[SCHED_BUFFER_SIZE];
 };
 
 void task_clear(struct task_t *);
