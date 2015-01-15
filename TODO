@@ -1,0 +1,18 @@
+[sched]
+* Come up with a method of context-switching on task_delay().
+  - Store the stack and next pc for each task in the task_t structure.
+    > This would require assembly code for each platform in order to save the
+      stack and register state.
+
+  - When you run task_delay() save the state, update the task_t to run again
+    after the delay, jump out to the outher sched_tick() to continue running the
+    rest of the tasks.
+    > This has the benefit of not requiring any type of interrupt to force a
+      jump to the scheduling function.
+    > Also, the only platform-specific code would be the state storage code.
+    > This would require all registered tasks to take the sched_t as a parameter
+      and would make functions go really weird (you need to longjmp to the pc,
+      and initial calling of the function would have to be done ASM-style.
+
+* Consider using the WDT (watchdog) for preemtive scheduling
+  - NOTE: This would make it platform specific.
