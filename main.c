@@ -24,8 +24,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#include "async.h"
 #include "sched.h"
+#include "async.h"
+#include "music.h"
 
 struct sched_t scheduler;
 
@@ -33,28 +34,9 @@ struct sched_t scheduler;
 /* NOTE: ARDUINO EMULATOR */
 /* ====================== */
 
-
-
 void setup(void) {
 	sched_init(&scheduler);
-
-	struct tone_t *tone440 = malloc(sizeof(struct tone_t));
-	tone_clear(tone440);
-	tone440->pin = 13;
-	tone440->amplitude = 0.5;
-	tone440->frequency = 440;
-	tone440->start = 0;
-	tone440->end = 3000;
-	async_tone(&scheduler, tone440);
-
-	struct tone_t *tone880 = malloc(sizeof(struct tone_t));
-	tone_clear(tone880);
-	tone880->pin = 13;
-	tone880->amplitude = 0.6;
-	tone880->frequency = 880;
-	tone880->start = 1000;
-	tone880->end = 2000;
-	async_tone(&scheduler, tone880);
+	music_register(&scheduler);
 }
 
 void loop(void) {
