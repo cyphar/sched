@@ -86,7 +86,7 @@ static void __async_tone_on(struct tone_t *tone) {
 	if(now < tone->start) {
 		struct task_t task;
 		task_clear(&task);
-		task.task = (void (*)(void *)) __async_tone_on;
+		task.task = (task_fp) __async_tone_on;
 		task.task_arg = tone;
 		task.mtime = tone->start - now;
 		task.flag = ONCE;
@@ -108,7 +108,7 @@ static void __async_tone_on(struct tone_t *tone) {
 	/* register tone_off task */
 	struct task_t task;
 	task_clear(&task);
-	task.task = (void (*)(void *)) __async_tone_off;
+	task.task = (task_fp) __async_tone_off;
 	task.task_arg = tone;
 	task.mtime = mduty;
 	task.flag = ONCE;
