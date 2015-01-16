@@ -20,8 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-SRC := $(wildcard *.c)
+SRC := $(wildcard *.c) test/main.c
 DEP := $(wildcard *.h) $(SRC)
 
 sched: $(DEP)
-	$(CC) -Wall -Wextra -ansi $(SRC) -o sched
+	$(CC) -Wall -Wextra -ansi -I. $(SRC) -o sched
