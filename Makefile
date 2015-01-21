@@ -22,6 +22,16 @@
 
 SRC := $(wildcard *.c) test/main.c
 DEP := $(wildcard *.h) $(SRC)
+BIN := sched
+
+CFLAGS  ?= -ansi -I.
+LDFLAGS ?=
+WARN    := -Wall -Wextra
+
+.PHONY: clean
 
 sched: $(DEP)
-	$(CC) -Wall -Wextra -ansi -I. $(SRC) -o sched
+	$(CC) $(CFLAGS) -o $(BIN) $(SRC) $(LDFLAGS) $(WARN)
+
+clean:
+	rm $(BIN)
