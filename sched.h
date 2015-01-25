@@ -41,6 +41,20 @@ enum {
 	PERIODIC,  /* run every (specified time) milliseconds (starting at the first tick after being registered). */
 };
 
+/* task state enum */
+enum {
+	BORN,   /* new task -- newly registered task that has not yet been run */
+	ALIVE,  /* active task -- should only be set for the *currently running task* */
+	FROZEN, /* paused task -- tasks that are in a blocking operation and have been rescheduled */
+	DEAD,   /* finished task -- tasks that have yielded control and are to be deregistered */
+}
+
+/* TODO: make this multi-architecture */
+/* NOTE: The following *LITERALLY* only works for x86_64. */
+
+#define FRAME_STACK_SIZE 60
+#include "arch/x86_64.h"
+
 typedef void (*task_fp)(void *);
 
 /* generic "task" structure */
@@ -51,18 +65,24 @@ struct task_t {
 	task_fp task;
 	void *task_arg;
 
+	/* This is all dark magic. Abandon all hope, ye who enter here. */
+	/* used when storing the task state and rescheduling */
+	struct frame_t _frame;
+	int _state;
+
 	/* a time-related variable, which has a different meaning depending on the flag */
 	long mtime;
 
 	/* represents the "next" scheduled time it is meant to run (allows for period tasks) */
 	long _next_mtime;
 
-	/* flag for a task, used to provide context for the mtime element */
-	int flag;
+	/* flags for a task, used to provide context for the mtime element */
+	int flags;
 };
 
 /* overall scheduler structure */
 struct sched_t {
+	struct task_t *_current_task;
 	struct task_t _tasks[SCHED_BUFFER_SIZE];
 };
 

@@ -33,28 +33,19 @@ struct sched_t scheduler;
 /* NOTE: ARDUINO EMULATOR */
 /* ====================== */
 
-
+static void test(void *_) {
+	printf("ran test\n");
+}
 
 void setup(void) {
 	sched_init(&scheduler);
 
-	struct tone_t *tone440 = malloc(sizeof(struct tone_t));
-	tone_clear(tone440);
-	tone440->pin = 13;
-	tone440->amplitude = 0.5;
-	tone440->frequency = 440;
-	tone440->start = 0;
-	tone440->end = 3000;
-	async_tone(&scheduler, tone440);
-
-	struct tone_t *tone880 = malloc(sizeof(struct tone_t));
-	tone_clear(tone880);
-	tone880->pin = 13;
-	tone880->amplitude = 0.6;
-	tone880->frequency = 880;
-	tone880->start = 1000;
-	tone880->end = 2000;
-	async_tone(&scheduler, tone880);
+	struct task_t task;
+	task_clear(&task);
+	task.task = test;
+	task.mtime = 0;
+	task.flags = ONCE;
+	sched_register(&scheduler, task);
 }
 
 void loop(void) {
